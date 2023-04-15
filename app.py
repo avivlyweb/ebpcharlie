@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import openai
 import requests
 import json
@@ -6,6 +7,9 @@ import streamlit as st
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import html2text
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Set up OpenAI API credentials
 openai.api_key = os.environ.get("OPENAI_API_KEY")
