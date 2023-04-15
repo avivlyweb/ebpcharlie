@@ -12,7 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Set up OpenAI API credentials
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+openai.api_key = st.secrets["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"]
+
 
 # Set up Pubmed API endpoint and query parameters
 pubmed_endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
