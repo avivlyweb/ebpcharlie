@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 import openai
 import requests
 import json
@@ -7,13 +6,13 @@ import streamlit as st
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import html2text
+from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
 # Set up OpenAI API credentials
 openai.api_key = os.environ.get("OPENAI_API_KEY")
-
 
 # Set up Pubmed API endpoint and query parameters
 pubmed_endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
