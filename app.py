@@ -15,7 +15,7 @@ pubmed_endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 params = {
     "db": "pubmed",
     "retmode": "json",
-    "retmax": 10,
+    "retmax": 5,
     "api_key": "5cd7903972b3a715e29b76f1a15001ce9a08"
 }
 
