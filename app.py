@@ -1,3 +1,4 @@
+import os
 import openai
 import requests
 import json
@@ -7,7 +8,7 @@ from bs4 import BeautifulSoup
 import html2text
 
 # Set up OpenAI API credentials
-openai.api_key = "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"
+openai.api_key = os.environ["OPENAI_API_KEY"]
 
 # Set up Pubmed API endpoint and query parameters
 pubmed_endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
