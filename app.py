@@ -6,14 +6,9 @@ import streamlit as st
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import html2text
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Set up OpenAI API credentials
-openai.api_key = st.secrets["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"]
-
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # Set up Pubmed API endpoint and query parameters
 pubmed_endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
@@ -68,7 +63,7 @@ def convert_to_text(abstracts):
     return text_abstracts
 
 # Get user input
-user_input = st.text_input("Hi there, I am EBPcharlie What is your clinical question?")
+user_input = st.text_input("Hi there, I am EBPcharlie. What is your clinical question?")
 
 # Generate prompt for OpenAI API
 prompt = f"Find systematic reviews related to '{user_input}'  published between 2021-2023 using Pubmed API and provide a summary of their findings and list in bullet points the most important outcome:"
