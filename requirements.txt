@@ -1,5 +1,6 @@
- openai
-requests
 streamlit
+openai
 beautifulsoup4
 html2text
+requests
+python-dotenv
