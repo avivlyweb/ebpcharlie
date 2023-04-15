@@ -88,4 +88,10 @@ if st.button("Search with EBPcharlie"):
         for i in range(len(article_ids)):
             st.write(f"Article {i+1}:")
             st.write(text_abstracts[i])
-            st.write("\n\n\n")
+            st.write("\n\n\n")      
+            
+            
+            
+            
+            
+            
