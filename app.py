@@ -77,9 +77,9 @@ if st.button("Search with EBPcharlie"):
     if not user_input:
         st.error("Please enter a clinical question to search for articles.")
     else:
-        article_ids = search_pubmed(user_input)
-        st.write(f"Found {len(article_ids)} articles related to your clinical question.")
-        abstracts = scrape_abstract(article_ids)
+        articles = search_pubmed(user_input)
+        st.write(f"Found {len(articles)} articles related to your clinical question.")
+        abstracts = scrape_abstract(articles)
         text_abstracts = convert_to_text(abstracts)
 
         # Generate summary using OpenAI API
@@ -88,12 +88,12 @@ if st.button("Search with EBPcharlie"):
         st.write(summary)
 
         # Display article abstracts
-       st.subheader("Article Abstracts")
-for abstract_info in text_abstracts:
-    st.write(f"PMID: {abstract_info['id']}")
-    st.write(f"URL: {abstract_info['url']}")
-    st.write(abstract_info["abstract"])
-    st.write("\n\n\n")
+        st.subheader("Article Abstracts")
+        for abstract_info in text_abstracts:
+            st.write(f"PMID: {abstract_info['id']}")
+            st.write(f"URL: {abstract_info['url']}")
+            st.write(abstract_info["abstract"])
+            st.write("\n\n\n")
 
             
             
