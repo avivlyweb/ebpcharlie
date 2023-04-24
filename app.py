@@ -39,34 +39,38 @@ def search_pubmed(query):
     response = requests.get(pubmed_endpoint, params=params)
     data = response.json()
     article_ids = data["esearchresult"]["idlist"]
-    return article_ids
+    articles = [{"id": article_id, "url": f"https://pubmed.ncbi.nlm.nih.gov/{article_id}"} for article_id in article_ids]
+    return articles
+
 
 # Define function to scrape article abstracts
-def scrape_abstract(article_ids):
+def scrape_abstract(articles):
     abstracts = []
-    for article_id in article_ids:
-        url = f"https://pubmed.ncbi.nlm.nih.gov/{article_id}"
+    for article in articles:
+        url = article["url"]
         html_page = urlopen(url)
         soup = BeautifulSoup(html_page)
         abstract = soup.find("div", {"class": "abstract-content selected"}).text
-        abstracts.append(abstract)
+        abstracts.append({"id": article["id"], "url": url, "abstract": abstract})
     return abstracts
+
 
 # Define function to convert html abstracts to text
 def convert_to_text(abstracts):
     text_abstracts = []
-    for abstract in abstracts:
+    for abstract_info in abstracts:
         h = html2text.HTML2Text()
         h.ignore_links = True
-        text_abstract = h.handle(abstract)
-        text_abstracts.append(text_abstract)
+        text_abstract = h.handle(abstract_info["abstract"])
+        text_abstracts.append({"id": abstract_info["id"], "url": abstract_info["url"], "abstract": text_abstract})
     return text_abstracts
+
 
 # Get user input
 user_input = st.text_input("Hi there, I am EBPcharlie. What is your clinical question?")
 
 # Generate prompt for OpenAI API
-prompt = f"Find systematic reviews related to '{user_input}'  published between 2021-2023 using Pubmed API and provide a summary of their findings and list in bullet points the most important outcome:"
+prompt = f"Find systematic reviews related to '{user_input}' published between 2021-2023 using Pubmed API and provide a summary of their findings. List the most important outcomes in bullet points and include the PMID and URL for each article:"
 
 # Search for articles using Pubmed API
 if st.button("Search with EBPcharlie"):
@@ -84,12 +88,13 @@ if st.button("Search with EBPcharlie"):
         st.write(summary)
 
         # Display article abstracts
-        st.subheader("Article Abstracts")
-        for i in range(len(article_ids)):
-            st.write(f"Article {i+1}:")
-            st.write(text_abstracts[i])
-            st.write("\n\n\n")      
-            
+       st.subheader("Article Abstracts")
+for abstract_info in text_abstracts:
+    st.write(f"PMID: {abstract_info['id']}")
+    st.write(f"URL: {abstract_info['url']}")
+    st.write(abstract_info["abstract"])
+    st.write("\n\n\n")
+
             
             
             
