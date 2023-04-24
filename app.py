@@ -27,7 +27,7 @@ def generate_text(prompt):
         max_tokens=2024,
         n=1,
         stop=None,
-        temperature=0.9,
+        temperature=0.7,
     )
 
     message = response.choices[0].text
