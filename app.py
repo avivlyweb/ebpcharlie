@@ -42,7 +42,6 @@ def search_pubmed(query):
     articles = [{"id": article_id, "url": f"https://pubmed.ncbi.nlm.nih.gov/{article_id}"} for article_id in article_ids]
     return articles
 
-
 # Define function to scrape article abstracts
 def scrape_abstract(articles):
     abstracts = []
@@ -54,7 +53,6 @@ def scrape_abstract(articles):
         abstracts.append({"id": article["id"], "url": url, "abstract": abstract})
     return abstracts
 
-
 # Define function to convert html abstracts to text
 def convert_to_text(abstracts):
     text_abstracts = []
@@ -64,7 +62,6 @@ def convert_to_text(abstracts):
         text_abstract = h.handle(abstract_info["abstract"])
         text_abstracts.append({"id": abstract_info["id"], "url": abstract_info["url"], "abstract": text_abstract})
     return text_abstracts
-
 
 # Get user input
 user_input = st.text_input("Hi there, I am EBPcharlie. What is your clinical question?")
@@ -79,13 +76,12 @@ if st.button("Search with EBPcharlie"):
         abstracts = scrape_abstract(articles)
         text_abstracts = convert_to_text(abstracts)
 
-   # Generate a list of PMIDs and URLs
-pmid_url_list = "\n".join([f"PMID: {abstract_info['id']} URL: {abstract_info['url']}" for abstract_info in text_abstracts])
+        # Generate a list of PMIDs and URLs
+        pmid_url_list = "\n".join([f"PMID: {abstract_info['id']} URL: {abstract_info['url']}" for abstract_info in text_abstracts])
 
-# Generate prompt for OpenAI API
-prompt = f"Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2021-2023:\n{pmid_url_list}\n\nProvide a summary of their findings that accurately reflects the content of these articles. List the most important outcomes in bullet points, and ensure that the PMID and URL mentioned for each outcome correspond to the correct article:"
+        # Generate prompt for OpenAI API
+        prompt = f"Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2021-2023:\n{pmid_url_list}\n\nProvide a summary of their findings that accurately reflects the content of these articles. List the most important outcomes in bullet points, and ensure that the PMID and URL mentioned for each outcome correspond to the correct article:"
 
-    
         # Generate summary using OpenAI API
         summary = generate_text(prompt)
         st.subheader("Summary of Findings")
@@ -98,6 +94,3 @@ prompt = f"Using your expert knowledge, analyze the following systematic reviews
             st.write(f"URL: {abstract_info['url']}")
             st.write(abstract_info["abstract"])
             st.write("\n\n\n")
-
-            
-            
