@@ -82,9 +82,19 @@ if st.button("Search with EBPcharlie"):
         # Generate a list of PMIDs and URLs
         pmid_url_list = "\n".join([f"PMID: {abstract_info['id']} URL: {abstract_info['url']}" for abstract_info in text_abstracts])
 
-        # Generate prompt for OpenAI API
-      prompt = f"Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2021-2023:\n{pmid_url_list}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of these articles.\n\n2. Important Outcomes (with PMID and URL):\n- List the most important outcomes in bullet points and ensure that the PMID and URL mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of these articles.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in these articles that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of these articles.\n\n6. Conclusion:\n- Sum up the main takeaways from these articles."
-
+    # Generate prompt for OpenAI API
+prompt = (
+    f"Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2021-2023:\n{pmid_url_list}\n\n"
+    "Please provide a structured analysis with the following sections:\n\n"
+    "1. Summary of Findings:\n- Provide a brief summary of the main findings of these articles.\n\n"
+    "2. Important Outcomes (with PMID and URL):\n- List the most important outcomes in bullet points and ensure that the PMID and URL mentioned for each outcome correspond to the correct article.\n\n"
+    "3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of these articles.\n\n"
+    "4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in these articles that could have significant impact on the field?\n\n"
+    "5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of these articles.\n\n"
+    "6. Conclusion:\n- Sum up the main takeaways from these articles."
+)
+   
+    
         # Generate summary using OpenAI API
         summary = generate_text(prompt)
         st.subheader("Summary of Findings")
