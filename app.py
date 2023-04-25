@@ -69,8 +69,6 @@ def convert_to_text(abstracts):
 # Get user input
 user_input = st.text_input("Hi there, I am EBPcharlie. What is your clinical question?")
 
-prompt = f"Find systematic reviews related to '{user_input}' published between 2021-2023 using Pubmed API and provide a summary of their findings. List the most important outcomes in bullet points and include the PMID and URL for each article:"
-
 # Search for articles using Pubmed API
 if st.button("Search with EBPcharlie"):
     if not user_input:
@@ -80,6 +78,12 @@ if st.button("Search with EBPcharlie"):
         st.write(f"Found {len(articles)} articles related to your clinical question.")
         abstracts = scrape_abstract(articles)
         text_abstracts = convert_to_text(abstracts)
+
+        # Generate a list of PMIDs and URLs
+        pmid_url_list = "\n".join([f"PMID: {abstract_info['id']} URL: {abstract_info['url']}" for abstract_info in text_abstracts])
+
+        # Generate prompt for OpenAI API
+        prompt = f"Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2021-2023:\n{pmid_url_list}\n\nProvide a summary of their findings that accurately reflects the content of these articles. List the most important outcomes in bullet points, and ensure that the PMID and URL mentioned for each outcome correspond to the correct article:"
 
         # Generate summary using OpenAI API
         summary = generate_text(prompt)
@@ -94,8 +98,5 @@ if st.button("Search with EBPcharlie"):
             st.write(abstract_info["abstract"])
             st.write("\n\n\n")
 
-            
-            
-            
             
             
