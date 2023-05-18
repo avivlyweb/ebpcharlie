@@ -5,6 +5,7 @@ import json
 import streamlit as st
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
+import html2text
 
 # Set up OpenAI API credentials
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -16,34 +17,20 @@ params = {
     "db": "pubmed",
     "retmode": "json",
     "retmax": 10,
-    "api_key": "5cd7903972b3a715e29b76f1a15001ce9a08"
+    "api_key": "5cd7903972b3a715e29b76f1a15001ce9a08"  # replace with your actual API key
 }
-
-# App Heading and Description
-st.markdown(
-    """
-    # EBPCharlie: An AI-Powered Literature Review Assistant
-
-    EBPCharlie utilizes AI technology to help automate and accelerate the literature review process for researchers. 
-    By integrating PubMed API and OpenAI's GPT-3, EBPCharlie can search for scientific articles based on a given 
-    PICO (Patient/Problem, Intervention, Comparison, Outcome) framework, extract relevant information from those articles,
-    and provide a structured summary of the findings.
-    
-    Simply input your PICO criteria, and EBPCharlie will do the rest!
-    """
-)
 
 # Define function to generate text using OpenAI API
 def generate_text(prompt):
     response = openai.Completion.create(
         engine="text-davinci-002",
         prompt=prompt,
-        max_tokens=1000,
+        max_tokens=2024,
         n=1,
         stop=None,
         temperature=0.7,
     )
-    message = response.choices[0].text
+    message = response.choices[0].text.strip()
     return message
 
 # Define function to search for articles using Pubmed API
@@ -66,49 +53,62 @@ def fetch_pubmed(article_ids):
     articles_data = soup.find_all("PubmedArticle")
     return articles_data
 
-# Extract MeSH terms and abstract from the articles data
-def get_mesh_terms(articles_data):
+# Extract MeSH terms, study type, and abstract from the articles data
+def get_article_info(articles_data):
     articles = []
     for article_data in articles_data:
         article_id = article_data.find("PMID").text
         url = f"https://pubmed.ncbi.nlm.nih.gov/{article_id}"
         mesh_terms = [mesh_term.text for mesh_term in article_data.find_all("DescriptorName")]
+        study_type = [type.text for type in article_data.find_all("PublicationType")]
         abstract = article_data.find("AbstractText").text if article_data.find("AbstractText") else ""
-        articles.append({"id": article_id, "url": url, "mesh_terms": mesh_terms, "abstract": abstract})
+        articles.append({"id": article_id, "url": url, "mesh_terms": mesh_terms, "study_type": study_type, "abstract": abstract})
     return articles
 
-# Get user PICO input
+# Title and intro
+st.title("EBPCharlie: Evidence-Based Practice Assistor")
+st.write("EBPCharlie uses AI and PubMed API to help you conduct systematic reviews, answer clinical questions, and save time in research. You can search using a clinical question or using the PICO framework.")
+
+# PICO search
+st.header("PICO Search")
 patient = st.text_input("Patient, Population, or Problem")
 intervention = st.text_input("Intervention")
 comparison = st.text_input("Comparison")
 outcome = st.text_input("Outcome")
 
-# Search for articles using Pubmed API
-if st.button("Search with EBPcharlie"):
+if st.button("PICO Search"):
     if not patient or not intervention or not outcome:
-        st.error("Please enter Patient, Intervention, and Outcome to search for articles.")
+        st.error("Please enter Patient/Problem, Intervention, and Outcome for PICO search.")
     else:
-        user_input = f"{patient} AND {intervention} AND {outcome} AND {comparison}"
-        article_ids = search_pubmed(user_input)
-        articles_data = fetch_pubmed(article_ids)
-        articles = get_mesh_terms(articles_data)
-        st.write(f"Found {len(articles)} articles related to your clinical question.")
+        pico_query = f"{patient} AND {intervention} AND {comparison} AND {outcome}"
+        pico_articles = search_pubmed(pico_query)
+        pico_articles = fetch_pubmed(pico_articles)
+        pico_articles = get_article_info(pico_articles)
+        st.write(f"Found {len(pico_articles)} articles related to your PICO question.")
+        
+        for article in pico_articles:
+            prompt = f"Analyse this article related to the PICO question '{pico_query}':\nPMID: {article['id']}\nURL: {article['url']}\nMeSH Terms: {', '.join(article['mesh_terms'])}\nStudy Type: {', '.join(article['study_type'])}\nAbstract: {article['abstract']}\n\nPlease provide a brief summary and the main findings of this article."
+            summary = generate_text(prompt)
+            st.subheader(f"Summary of Findings for PMID: {article['id']}")
+            st.write(summary)
+            st.write("\n\n\n")
 
-        # Generate a list of PMIDs, URLs and MeSH terms
-        article_list = "\n".join([f"PMID: {article['id']} URL: {article['url']} MeSH Terms: {', '.join(article['mesh_terms'])}" for article in articles])
+# Clinical question search
+st.header("Clinical Question Search")
+user_input = st.text_input("Enter your clinical question", key="clinical_question")
 
-        # Generate prompt for OpenAI API
-        prompt = f"Using your expert knowledge, analyze the following articles related to the PICO question:\n- Patient/Problem: '{patient}'\n- Intervention: '{intervention}'\n- Comparison: '{comparison}'\n- Outcome: '{outcome}'\n\nArticles:\n{article_list}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- How does the intervention compare to the comparison in affecting the outcome for the patient/problem?\n- What are the main findings of these articles in the context of the PICO question?\n\n2. Important Outcomes (with PMID, URL, and MeSH terms):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of these articles in the context of the PICO question.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in these articles that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of these articles.\n\n6. Conclusion:\n- Sum up the main takeaways from these articles in the context of the PICO question."
-        # Generate summary using OpenAI API
-        summary = generate_text(prompt)
-        st.subheader("Summary of Findings")
-        st.write(summary)
-
-        # Display article abstracts and MeSH terms
-        st.subheader("Article Abstracts and MeSH terms")
-        for article in articles:
-            st.write(f"PMID: {article['id']}")
-            st.write(f"URL: {article['url']}")
-            st.write(f"MeSH terms: {', '.join(article['mesh_terms'])}")
-            st.write(article["abstract"])
+if st.button("Search Clinical Question"):
+    if not user_input:
+        st.error("Please enter a clinical question.")
+    else:
+        clinical_articles = search_pubmed(user_input)
+        clinical_articles = fetch_pubmed(clinical_articles)
+        clinical_articles = get_article_info(clinical_articles)
+        st.write(f"Found {len(clinical_articles)} articles related to your clinical question.")
+        
+        for article in clinical_articles:
+            prompt = f"Analyse this article related to the clinical question '{user_input}':\nPMID: {article['id']}\nURL: {article['url']}\nMeSH Terms: {', '.join(article['mesh_terms'])}\nStudy Type: {', '.join(article['study_type'])}\nAbstract: {article['abstract']}\n\nPlease provide a brief summary and the main findings of this article."
+            summary = generate_text(prompt)
+            st.subheader(f"Summary of Findings for PMID: {article['id']}")
+            st.write(summary)
             st.write("\n\n\n")
