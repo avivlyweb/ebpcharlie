@@ -6,10 +6,6 @@ import streamlit as st
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import html2text
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Set up OpenAI API credentials
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -23,18 +19,20 @@ params = {
     "api_key": os.getenv("PUBMED_API_KEY")
 }
 
+# Define list of study types
+study_types = ["randomized controlled trial", "meta-analysis", "clinical trial", "protocol"]
+
 # Define function to generate text using OpenAI API
 def generate_text(prompt):
     response = openai.Completion.create(
         engine="text-davinci-002",
         prompt=prompt,
-        max_tokens=2024,
+        max_tokens=2048,
         n=1,
         stop=None,
         temperature=0.7,
     )
-
-    message = response.choices[0].text
+    message = response.choices[0].text.strip()
     return message
 
 # Define function to search for articles using Pubmed API
@@ -53,18 +51,12 @@ def scrape_articles(articles):
         html_page = urlopen(url)
         soup = BeautifulSoup(html_page, features="lxml")
         abstract = soup.find("div", {"class": "abstract-content selected"}).text
-        mesh_terms = [mesh.get_text() for mesh in soup.find_all("li", {"class": "mesh-term"})]
+        mesh_terms = [mesh.get_text().lower() for mesh in soup.find_all("li", {"class": "mesh-term"})]
         article["abstract"] = abstract
         article["mesh_terms"] = mesh_terms
-    return articles
 
-# Define function to convert html abstracts to text
-def convert_to_text(articles):
-    h = html2text.HTML2Text()
-    h.ignore_links = True
-    for article in articles:
-        text_abstract = h.handle(article["abstract"])
-        article["abstract"] = text_abstract
+        # Identify the study type based on MeSH terms
+        article["study_type"] = [study_type for study_type in study_types if study_type in mesh_terms]
     return articles
 
 # Get user input
@@ -78,45 +70,24 @@ if st.button("Search with EBPcharlie"):
         articles = search_pubmed(user_input)
         st.write(f"Found {len(articles)} articles related to your clinical question.")
         articles = scrape_articles(articles)
-        articles = convert_to_text(articles)
 
-        # Generate a list of PMIDs, URLs, and MeSH terms
-        article_list = "\n".join([f"PMID: {article['id']}\nURL: {article['url']}\nMeSH terms: {', '.join(article['mesh_terms'])}\nAbstract: {article['abstract']}\n" for article in articles])
+        # Generate a list of PMIDs, URLs, MeSH terms, and study types
+        article_list = "\n".join([f"PMID: {article['id']}\nURL: {article['url']}\nMeSH terms: {', '.join(article['mesh_terms'])}\nStudy type: {', '.join(article['study_type'])}\nAbstract: {article['abstract']}\n" for article in articles])
 
         # Generate prompt for OpenAI API
-        prompt = f"""
-        Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2019-2023:\n{article_list}
-        Please provide a focused and efficient analysis with the following sections:
+        prompt = f"Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2019-2023:\n{article_list}\n\nPlease provide a focused and efficient analysis with the following sections:\n\n1. Focused Summary of Findings:\n- Provide a concise summary of the main findings of these articles, focusing on the most significant points.\n\n2. Important Outcomes (with PMID, URL, MeSH terms, and Study type):\n- List the most significant outcomes, associating each outcome with its PMID, URL, MeSH terms and study type.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of these articles.\n\n4. Noteworthy Treatments or Methodologies:\n- Mention any remarkable treatments or methodologies presented in these articles that could have substantial impact in the field.\n\n5. Potential Future Research Directions:\n- Suggest any potential future research directions based on the findings of these articles.\n\n6. Key Takeaways:\n- Summarize the most critical points from these articles that will benefit the reader's research."
 
-        1. Focused Summary of Findings:
-        - Provide a brief summary of these articles, focusing specifically on outcomes and findings relevant to [insert researcher's specific area of interest here].
-
-        2. Key Findings (with PMID, URL, and MeSH terms):
-        - List only the key findings from each article. Ensure that the PMID, URL, and MeSH terms for each finding correspond to the correct article.
-
-        3. Specific Methodologies or Treatments:
-        - Highlight any methodologies or treatments mentioned in these articles that align with [insert researcher's specific methodology or treatment of interest here].
-
-        4. Direct Comparisons:
-        - Provide direct comparisons of [insert specific metrics or outcome measures of interest here] across these articles.
-
-        5. Future Research Directions:
-        - Discuss potential future research directions related to [insert researcher's specific area of study here] based on the findings of these articles.
-
-        6. Conclusion:
-        - Sum up the key takeaways from these articles that are directly relevant to [insert researcher's specific area of interest here].
-        """
-        
         # Generate summary using OpenAI API
         summary = generate_text(prompt)
         st.subheader("Summary of Findings")
         st.write(summary)
 
-        # Display article abstracts
-        st.subheader("Article Abstracts")
+        # Display article abstracts, MeSH terms, and study types
+        st.subheader("Article Details")
         for article in articles:
             st.write(f"PMID: {article['id']}")
             st.write(f"URL: {article['url']}")
-            st.write(f"MeSH Terms: {', '.join(article['mesh_terms'])}")
-            st.write(article["abstract"])
-            st.write("\n\n\n")
+            st.write(f"MeSH terms: {', '.join(article['mesh_terms'])}")
+            st.write(f"Study type: {', '.join(article['study_type'])}")
+            st.write(f"Abstract: {article['abstract']}")
+            st.write("\n\n\n") 
