@@ -102,7 +102,6 @@ if st.button("Generate PICO Query"):
         st.error("Please fill in all the PICO fields to generate a query.")
     else:
         pico_query = f"{p} AND {i} AND {c} AND {o}"
-        st.markdown(f"**Generated PICO question**: In patients with {p}, how does {i} compare to {c} for {o}?")
         article_ids = search_pubmed(pico_query)
         if not article_ids:
             st.write("No articles found related to your PICO question.")
@@ -116,3 +115,13 @@ if st.button("Generate PICO Query"):
                 # Generate text using OpenAI API
                 text = generate_text(prompt)
                 st.write(text)
+
+# Generate PICO question using OpenAI API
+if st.button("Generate PICO Questions"):
+    if not user_input:
+        st.error("Please enter a clinical question to generate PICO questions.")
+    else:
+        prompt = f"Given the clinical query '{user_input}', generate three possible PICO questions:"
+        # Generate text using OpenAI API
+        pico_questions = generate_text(prompt)
+        st.write(pico_questions)
