@@ -1,6 +1,6 @@
 import os
 import openai
-import requests 
+import requests
 import json
 import streamlit as st
 from bs4 import BeautifulSoup
@@ -102,6 +102,7 @@ if st.button("Generate PICO Query"):
         st.error("Please fill in all the PICO fields to generate a query.")
     else:
         pico_query = f"{p} AND {i} AND {c} AND {o}"
+        st.markdown(f"**Generated PICO question**: In patients with {p}, how does {i} compare to {c} for {o}?")
         article_ids = search_pubmed(pico_query)
         if not article_ids:
             st.write("No articles found related to your PICO question.")
