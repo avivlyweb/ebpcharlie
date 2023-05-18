@@ -20,14 +20,17 @@ params = {
 
 # Define function to generate text using OpenAI API
 def generate_text(prompt):
-    response = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt=prompt,
-        max_tokens=1000,
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "system", "content": "You are an AI-powered research assistant."},
+                  {"role": "user", "content": prompt}],
+        max_tokens=2024,
+        n=1,
+        stop=None,
         temperature=0.7,
     )
-    message = response.choices[0].text.strip()
-    return message
+
+    return response["choices"][0]["message"]["content"].strip()
 
 # Define function to search for articles using Pubmed API
 def search_pubmed(query):
@@ -102,7 +105,6 @@ if st.button("Generate PICO Query"):
         st.error("Please fill in all the PICO fields to generate a query.")
     else:
         pico_query = f"{p} AND {i} AND {c} AND {o}"
-        st.markdown(f"**Generated PICO question**: In patients with {p}, how does {i} compare to {c} for {o}?")
         article_ids = search_pubmed(pico_query)
         if not article_ids:
             st.write("No articles found related to your PICO question.")
@@ -112,7 +114,7 @@ if st.button("Generate PICO Query"):
             articles = get_mesh_terms(articles_data)
             # Generate prompt for OpenAI API
             for article in articles:
-                prompt = f"Using your expert knowledge, analyze the following systematic review related to '{pico_query}':\n{article['abstract']}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of this article.\n\n2. Important Outcomes (with PMID: {article['id']}, URL: {article['url']}, and MeSH terms: {', '.join(article['mesh_terms'])}):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities with other findings.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in this article that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of this article.\n\n6. Conclusion:\n- Sum up the main takeaways from this article."
+                prompt = f"Using your expert knowledge, analyze the following systematic review related to '{pico_query}':\n{article['abstract']}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of this article.\n\n2. Important Outcomes (with PMID: {article['id']}, URL: {article['url']}, and MeSH terms: {', '.join(article['mesh_terms'])}):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of this article and others in the field.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in this article that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of this article.\n\n6. Conclusion:\n- Sum up the main takeaways from this article."
                 # Generate text using OpenAI API
                 text = generate_text(prompt)
                 st.write(text)
