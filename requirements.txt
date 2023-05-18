@@ -4,3 +4,4 @@ beautifulsoup4
 html2text
 requests
 python-dotenv
+lxml
