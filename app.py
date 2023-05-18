@@ -22,8 +22,10 @@ params = {
 def generate_text(prompt):
     response = openai.ChatCompletion.create(
         model="gpt-4",
-        messages=[{"role": "system", "content": "You are an AI-powered research assistant."},
-                  {"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": "You are an AI-powered research assistant."},
+            {"role": "user", "content": prompt}
+        ],
         max_tokens=2024,
         n=1,
         stop=None,
@@ -105,6 +107,7 @@ if st.button("Generate PICO Query"):
         st.error("Please fill in all the PICO fields to generate a query.")
     else:
         pico_query = f"{p} AND {i} AND {c} AND {o}"
+        st.markdown(f"**PICO Query:** {pico_query}")
         article_ids = search_pubmed(pico_query)
         if not article_ids:
             st.write("No articles found related to your PICO question.")
