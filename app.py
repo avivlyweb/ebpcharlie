@@ -8,55 +8,60 @@ from bs4 import BeautifulSoup
 import html2text
 
 # Set up OpenAI API credentials
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Set up Pubmed API endpoint and query parameters
-pubmed_endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+# Set up Pubmed API endpoints and query parameters
+pubmed_search_endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+pubmed_fetch_endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 params = {
     "db": "pubmed",
     "retmode": "json",
     "retmax": 5,
-    "api_key": os.getenv("PUBMED_API_KEY")
+    "api_key": "5cd7903972b3a715e29b76f1a15001ce9a08"
 }
-
-# Define list of study types
-study_types = ["randomized controlled trial", "meta-analysis", "clinical trial", "protocol"]
 
 # Define function to generate text using OpenAI API
 def generate_text(prompt):
     response = openai.Completion.create(
         engine="text-davinci-002",
         prompt=prompt,
-        max_tokens=2048,
+        max_tokens=2024,
         n=1,
         stop=None,
         temperature=0.7,
     )
-    message = response.choices[0].text.strip()
+    message = response.choices[0].text
     return message
 
 # Define function to search for articles using Pubmed API
 def search_pubmed(query):
     params["term"] = query
-    response = requests.get(pubmed_endpoint, params=params)
+    response = requests.get(pubmed_search_endpoint, params=params)
     data = response.json()
     article_ids = data["esearchresult"]["idlist"]
-    articles = [{"id": article_id, "url": f"https://pubmed.ncbi.nlm.nih.gov/{article_id}"} for article_id in article_ids]
-    return articles
+    return article_ids
 
-# Define function to scrape article abstracts and MeSH terms
-def scrape_articles(articles):
-    for article in articles:
-        url = article["url"]
-        html_page = urlopen(url)
-        soup = BeautifulSoup(html_page, features="lxml")
-        abstract = soup.find("div", {"class": "abstract-content selected"}).text
-        mesh_terms = [mesh.get_text().lower() for mesh in soup.find_all("li", {"class": "mesh-term"})]
-        article["abstract"] = abstract
-        article["mesh_terms"] = mesh_terms
+# Fetch the full details of the articles using Pubmed API
+def fetch_pubmed(article_ids):
+    params = {
+        "db": "pubmed",
+        "retmode": "xml",
+        "id": ",".join(article_ids)
+    }
+    response = requests.get(pubmed_fetch_endpoint, params=params)
+    soup = BeautifulSoup(response.text, 'xml')
+    articles_data = soup.find_all("PubmedArticle")
+    return articles_data
 
-        # Identify the study type based on MeSH terms
-        article["study_type"] = [study_type for study_type in study_types if study_type in mesh_terms]
+# Extract MeSH terms and abstract from the articles data
+def get_mesh_terms(articles_data):
+    articles = []
+    for article_data in articles_data:
+        article_id = article_data.find("PMID").text
+        url = f"https://pubmed.ncbi.nlm.nih.gov/{article_id}"
+        mesh_terms = [mesh_term.text for mesh_term in article_data.find_all("DescriptorName")]
+        abstract = article_data.find("AbstractText").text if article_data.find("AbstractText") else ""
+        articles.append({"id": article_id, "url": url, "mesh_terms": mesh_terms, "abstract": abstract})
     return articles
 
 # Get user input
@@ -67,27 +72,27 @@ if st.button("Search with EBPcharlie"):
     if not user_input:
         st.error("Please enter a clinical question to search for articles.")
     else:
-        articles = search_pubmed(user_input)
+        article_ids = search_pubmed(user_input)
+        articles_data = fetch_pubmed(article_ids)
+        articles = get_mesh_terms(articles_data)
         st.write(f"Found {len(articles)} articles related to your clinical question.")
-        articles = scrape_articles(articles)
 
-        # Generate a list of PMIDs, URLs, MeSH terms, and study types
-        article_list = "\n".join([f"PMID: {article['id']}\nURL: {article['url']}\nMeSH terms: {', '.join(article['mesh_terms'])}\nStudy type: {', '.join(article['study_type'])}\nAbstract: {article['abstract']}\n" for article in articles])
+        # Generate a list of PMIDs, URLs and MeSH terms
+        article_list = "\n".join([f"PMID: {article['id']} URL: {article['url']} MeSH Terms: {', '.join(article['mesh_terms'])}" for article in articles])
 
         # Generate prompt for OpenAI API
-        prompt = f"Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2019-2023:\n{article_list}\n\nPlease provide a focused and efficient analysis with the following sections:\n\n1. Focused Summary of Findings:\n- Provide a concise summary of the main findings of these articles, focusing on the most significant points.\n\n2. Important Outcomes (with PMID, URL, MeSH terms, and Study type):\n- List the most significant outcomes, associating each outcome with its PMID, URL, MeSH terms and study type.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of these articles.\n\n4. Noteworthy Treatments or Methodologies:\n- Mention any remarkable treatments or methodologies presented in these articles that could have substantial impact in the field.\n\n5. Potential Future Research Directions:\n- Suggest any potential future research directions based on the findings of these articles.\n\n6. Key Takeaways:\n- Summarize the most critical points from these articles that will benefit the reader's research."
+        prompt = f"Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2019-2023:\n{article_list}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of these articles.\n\n2. Important Outcomes (with PMID, URL, and MeSH terms):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of these articles.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in these articles that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of these articles.\n\n6. Conclusion:\n- Sum up the main takeaways from these articles."
 
         # Generate summary using OpenAI API
         summary = generate_text(prompt)
         st.subheader("Summary of Findings")
         st.write(summary)
 
-        # Display article abstracts, MeSH terms, and study types
-        st.subheader("Article Details")
+        # Display article abstracts and MeSH terms
+        st.subheader("Article Abstracts and MeSH terms")
         for article in articles:
             st.write(f"PMID: {article['id']}")
             st.write(f"URL: {article['url']}")
             st.write(f"MeSH terms: {', '.join(article['mesh_terms'])}")
-            st.write(f"Study type: {', '.join(article['study_type'])}")
-            st.write(f"Abstract: {article['abstract']}")
+            st.write(article["abstract"])
             st.write("\n\n\n") 
