@@ -14,14 +14,14 @@ params = {
     "db": "pubmed",
     "retmode": "json",
     "retmax": 10,
-    "api_key": "5cd7903972b3a715e29b76f1a15001ce9a08" 
+    "api_key": "5cd7903972b3a715e29b76f1a15001ce9a08"
 }
 
 def generate_text(prompt):
     response = openai.Completion.create(
         engine="text-davinci-002",
         prompt=prompt,
-        max_tokens=500,
+        max_tokens=1000,
         temperature=0.7,
     )
     message = response.choices[0].text.strip()
@@ -73,8 +73,7 @@ if st.button("Search with EBPcharlie"):
             st.write("No articles found related to your PICO.")
         else:
             for article in articles:
-                prompt = f"Analyse the following article related to the clinical question '{user_input}' with PICO components (Patient: '{patient}', Intervention: '{intervention}', Comparison: '{comparison}', Outcome: '{outcome}') :\n\nPMID: {article['id']}\nURL: {article['url']}\nMeSH Terms: {', '.join(article['mesh_terms'])}\nAbstract: {article['abstract']}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of this article.\n\n2. Important Outcomes (with PMID, URL, and MeSH terms):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of these articles.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in these articles that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of these articles.\n\n6. Conclusion:\n- Sum up the main takeaways from this article."
+                prompt = f"Using your expert knowledge, analyze the following systematic review related to '{user_input}' published between 2019-2023:\n\nPMID: {article['id']}\nURL: {article['url']}\nMeSH Terms: {', '.join(article['mesh_terms'])}\nAbstract: {article['abstract']}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of this article.\n\n2. Important Outcomes (with PMID, URL, and MeSH terms):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of this article and others.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in this article that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of this article.\n\n6. Conclusion:\n- Sum up the main takeaways from this article."
                 summary = generate_text(prompt)
                 st.subheader(f"Article Title: {article['title']}")
                 st.write(summary)
-
