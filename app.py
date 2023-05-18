@@ -71,16 +71,17 @@ st.write("EBPCharlie uses AI and PubMed API to help you conduct systematic revie
 
 # PICO search
 st.header("PICO Search")
-patient = st.text_input("Patient, Population, or Problem")
-intervention = st.text_input("Intervention")
-comparison = st.text_input("Comparison")
-outcome = st.text_input("Outcome")
+patient = st.text_input("Patient, Population, or Problem", key="patient")
+intervention = st.text_input("Intervention", key="intervention")
+comparison = st.text_input("Comparison", key="comparison")
+outcome = st.text_input("Outcome", key="outcome")
 
-if st.button("PICO Search"):
-    if not patient or not intervention or not outcome:
-        st.error("Please enter Patient/Problem, Intervention, and Outcome for PICO search.")
+pico_query = f"{patient} AND {intervention} AND {comparison} AND {outcome}"
+
+if st.button("Search PICO"):
+    if not all([patient, intervention, comparison, outcome]):
+        st.error("Please fill in all PICO components.")
     else:
-        pico_query = f"{patient} AND {intervention} AND {comparison} AND {outcome}"
         pico_articles = search_pubmed(pico_query)
         pico_articles = fetch_pubmed(pico_articles)
         pico_articles = get_article_info(pico_articles)
@@ -89,8 +90,8 @@ if st.button("PICO Search"):
         for article in pico_articles:
             prompt = f"Analyse this article related to the PICO question '{pico_query}':\nPMID: {article['id']}\nURL: {article['url']}\nMeSH Terms: {', '.join(article['mesh_terms'])}\nStudy Type: {', '.join(article['study_type'])}\nAbstract: {article['abstract']}\n\nPlease provide a brief summary and the main findings of this article."
             summary = generate_text(prompt)
-            st.subheader(f"Summary of Findings for PMID: {article['id']}")
-            st.write(summary)
+            st.markdown(f"### Summary of Findings for PMID: {article['id']}")
+            st.markdown(f"**{summary}**")
             st.write("\n\n\n")
 
 # Clinical question search
@@ -109,6 +110,6 @@ if st.button("Search Clinical Question"):
         for article in clinical_articles:
             prompt = f"Analyse this article related to the clinical question '{user_input}':\nPMID: {article['id']}\nURL: {article['url']}\nMeSH Terms: {', '.join(article['mesh_terms'])}\nStudy Type: {', '.join(article['study_type'])}\nAbstract: {article['abstract']}\n\nPlease provide a brief summary and the main findings of this article."
             summary = generate_text(prompt)
-            st.subheader(f"Summary of Findings for PMID: {article['id']}")
-            st.write(summary)
+            st.markdown(f"### Summary of Findings for PMID: {article['id']}")
+            st.markdown(f"**{summary}**")
             st.write("\n\n\n")
