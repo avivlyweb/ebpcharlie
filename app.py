@@ -14,7 +14,7 @@ pubmed_fetch_endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fc
 params = {
     "db": "pubmed",
     "retmode": "json",
-    "retmax": 10,
+    "retmax": 20,  # Increased from 10 to 20
     "api_key": "5cd7903972b3a715e29b76f1a15001ce9a08"
 }
 
@@ -31,7 +31,7 @@ def generate_text(prompt, max_tokens=1000):
 
 # Define function to search for articles using Pubmed API
 def search_pubmed(query):
-    params["term"] = query
+    params["term"] = f"{query} AND (systematic[sb] OR meta-analysis[pt])"  # Narrow down to systematic reviews or meta-analyses
     response = requests.get(pubmed_search_endpoint, params=params)
     data = response.json()
     article_ids = data["esearchresult"]["idlist"]
@@ -82,18 +82,16 @@ if st.button("Search with EBPcharlie"):
             st.write(f"Found {len(article_ids)} articles related to your clinical question.")
             articles_data = fetch_pubmed(article_ids)
             articles = get_mesh_terms(articles_data)
-            
-            # Generate outcome specific to the clinical question
-            article_list = "\n\n".join([f"PMID: {article['id']}, URL: {article['url']}, MeSH terms: {', '.join(article['mesh_terms'])}, Abstract: {article['abstract']}" for article in articles])
-            outcome_prompt = f"Based on your expert knowledge and the abstracts of the following articles related to '{user_input}', what could be the likely outcome?\n{article_list}"
-            outcome_text = generate_text(outcome_prompt, max_tokens=300)
-            st.markdown(f"**Outcome related to your clinical question**: {outcome_text}")
+            for article in articles:
+                outcome_prompt = f"Based on your expert knowledge and the abstract of the following article related to '{user_input}', what could be the likely outcome?\n{article['abstract']}"
+                outcome_text = generate_text(outcome_prompt, max_tokens=300)
+                st.markdown(f"**Outcome related to your clinical question**: {outcome_text}")
 
-            # Generate prompt for OpenAI API
-            prompt = f"Using your expert knowledge, analyze the following systematic reviews related to '{user_input}' published between 2019-2023:\n{article_list}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of these articles.\n\n2. Important Outcomes (with PMID, URL, and MeSH terms):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of these articles.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in these articles that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of these articles.\n\n6. Conclusion:\n- Sum up the main takeaways from these articles."
-            # Generate text using OpenAI API
-            text = generate_text(prompt)
-            st.write(text)
+                # Generate prompt for OpenAI API
+                prompt = f"Using your expert knowledge, analyze the following systematic review related to '{user_input}':\n{article['abstract']}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of this article.\n\n2. Important Outcomes (with PMID: {article['id']}, URL: {article['url']}, and MeSH terms: {', '.join(article['mesh_terms'])}):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities with other findings.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in this article that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of this article.\n\n6. Conclusion:\n- Sum up the main takeaways from this article."
+                # Generate text using OpenAI API
+                text = generate_text(prompt)
+                st.write(text)
 
 # PICO query
 st.header("Or, generate a PICO Query")
@@ -112,23 +110,18 @@ if st.button("Generate PICO Query"):
         article_ids = search_pubmed(pico_query)
         if not article_ids:
             st.write("No articles found related to your PICO question.")
-            articles = []  # Initialize articles as an empty list
         else:
             st.write(f"Found {len(article_ids)} articles related to your PICO question.")
             articles_data = fetch_pubmed(article_ids)
-            if not articles_data: 
-                articles = []  # Initialize articles as an empty list
-            else:
-                articles = get_mesh_terms(articles_data)
+            articles = get_mesh_terms(articles_data)
+            for article in articles:
+                # Generate outcome specific to the PICO query
+                outcome_prompt = f"Based on your expert knowledge and the abstract of the following article related to '{pico_query}', what could be the likely outcome?\n{article['abstract']}"
+                outcome_text = generate_text(outcome_prompt, max_tokens=300)
+                st.markdown(f"**Outcome related to your PICO question**: {outcome_text}")
 
-        for article in articles:
-            # Generate outcome specific to the PICO query
-            outcome_prompt = f"Based on your expert knowledge and the abstract of the following article related to '{pico_query}', what could be the likely outcome?\n{article['abstract']}"
-            outcome_text = generate_text(outcome_prompt, max_tokens=300)
-            st.markdown(f"**Outcome related to your PICO question**: {outcome_text}")
-
-            # Generate prompt for OpenAI API
-            prompt = f"Using your expert knowledge, analyze the following systematic review related to '{pico_query}' published in 2023:\n{article['abstract']}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of this article.\n\n2. Important Outcomes (with PMID, URL, and MeSH terms):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities between the findings of these articles.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in this article that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of this article.\n\n6. Conclusion:\n- Sum up the main takeaways from this article."
-            # Generate text using OpenAI API
-            text = generate_text(prompt)
-            st.write(text)
+                # Generate prompt for OpenAI API
+                prompt = f"Using your expert knowledge, analyze the following systematic review related to '{pico_query}':\n{article['abstract']}\n\nPlease provide a structured analysis with the following sections:\n\n1. Summary of Findings:\n- Provide a brief summary of the main findings of this article.\n\n2. Important Outcomes (with PMID: {article['id']}, URL: {article['url']}, and MeSH terms: {', '.join(article['mesh_terms'])}):\n- List the most important outcomes in bullet points and ensure that the PMID, URL, and MeSH terms mentioned for each outcome correspond to the correct article.\n\n3. Comparisons and Contrasts:\n- Highlight any key differences or similarities with other findings.\n\n4. Innovative Treatments or Methodologies:\n- Are there any innovative treatments or methodologies mentioned in this article that could have significant impact on the field?\n\n5. Future Research and Unanswered Questions:\n- Briefly discuss any potential future research directions or unanswered questions based on the findings of this article.\n\n6. Conclusion:\n- Sum up the main takeaways from this article."
+                # Generate text using OpenAI API
+                text = generate_text(prompt)
+                st.write(text)
