@@ -47,7 +47,7 @@ def generate_cohere_text(prompt):
 
 # Define function to search for articles using Pubmed API
 def search_pubmed(query):
-    params["term"] = f"{query} AND (systematic[sb] OR meta-analysis[pt])"
+    params["term"] = f"{query} AND (systematic[sb] OR meta-analysis[pt])"  # Narrow down to systematic reviews or meta-analyses
     response = requests.get(pubmed_search_endpoint, params=params)
     data = response.json()
     article_ids = data["esearchresult"]["idlist"]
@@ -98,7 +98,6 @@ if st.button("Search with EBPcharlie"):
             st.write(f"Found {len(article_ids)} articles related to your clinical question.")
             articles_data = fetch_pubmed(article_ids)
             articles = get_mesh_terms(articles_data)
-            
             for article in articles:
                 outcome_prompt = f"Based on your expert knowledge and the abstract of the following article related to '{user_input}', what could be the likely outcome?\n{article['abstract']}"
                 outcome_text = generate_openai_text(outcome_prompt, max_tokens=300)
@@ -109,19 +108,6 @@ if st.button("Search with EBPcharlie"):
                 # Generate text using OpenAI API
                 text = generate_openai_text(prompt)
                 st.write(text)
-                
-                # Adding Further Reading Recommendations
-                st.subheader("Further Reading Recommendations")
-                for recommended_article in articles[:5]:
-                    st.markdown(f"[{recommended_article['id']}]({recommended_article['url']}) - Click to read more")
-                
-                # Additional interactivity: View a brief summary directly in the app
-                selected_article = st.selectbox("Select an article for a brief summary", [a["id"] for a in articles])
-                if st.button("View Summary"):
-                    selected_article_data = next((a for a in articles if a["id"] == selected_article), None)
-                    st.write(selected_article_data["abstract"] if selected_article_data else "Article not found.")
-                
-# PICO query remains unchanged
 
 # PICO query
 st.header("Or, generate a PICO Query")
